@@ -1,6 +1,7 @@
 ---
 title: Client Hint Reliability
 docname: draft-victortan-http-client-hint-reliability-latest
+submissiontype: IETF
 category: exp
 updates: ietf-httpbis-client-hints
 
@@ -39,7 +40,6 @@ informative:
     target: https://w3c.github.io/device-memory/
     title: Device Memory
     author:
-    -
       ins: S. Panicker
       name: Shubhie Panicker
       organization: Google LLC
@@ -307,15 +307,32 @@ procedure above implicitly satisfies this by deferring processing to after the
 connection has been chosen for a corresponding request. Unauthoritative origins
 and other unmatched entries are ignored.
 
-\[\[TODO: Some variations on this behavior we could choose instead:
+There are some variations on this behavior user agents can choose:
 
-* Do new ACCEPT_CH frames override the whole set or implement some kind of update? Overriding the whole set seems simplest and most consistent with an EXTENDED_SETTINGS variant.
+* Overriding ACCEPT_CH frames: This document RECOMMENDED new ACCEPT_CH frame
+overrides the existing set for corresponding origin because it's simplest and
+most consistent with an EXTENDED_SETTINGS variant.
 
-* Should the user agent reject the ACCEPT_CH frame if there are unexpected origins in there? Deferring avoids needing to worry about this, and ignoring the unused ones may interact better with secondary certs.
+* Handling unexpected ACCEPT_CH frames: If ACCEPT_CH frames contains unexpected
+origins which the request is not interested, this feature proposes ignoring those
+entries because it may interact better with secondary certificates. If a request
+doesn't find corresponding entries in ACCEPT_CH frames, it SHOULD be treated as
+a no-op.
 
-* Should ACCEPT_CH frames be deferred or just written to the cache when received? Deferred simplifies reasoning about bad origins, predictive connections, etc., but means interactions between ACCEPT_CH and Accept-CH are more complex (see below).
+* Deferring ACCEPT_CH frames: ACCEPT_CH frames may be deferred or immediately
+written to the cache, this document RECOMMENDED deferred instead of caching them,
+this can avoid acting on potentially incorrect preferences from bad origins or
+predictive connections, but this also mean interactions between ACCEPT_CH and
+Accept-CH are more complex (see below).
 
-* How should ACCEPT_CH and Accept-CH interact? The document currently proposes unioning them, which is easy. Accept-CH first would work, but unnecessarily ignore newer connection-level ACCEPT_CHs. ACCEPT_CH would not; a stale connection-level preference would get stuck. Whichever is received earlier would also work, but requires tracking timestamps if deferred (see above).\]\]
+* ACCEPT_CH frames and Accept-CH interactions: The document currently proposes
+merging Client Hint preferences in ACCEPT_CH frames and Accept-CH when user
+agents make the initial request, which is easy. However, Client Hint preferences
+in ACCEPT_CH frames are *NOT* stored in the persistent Client Hint cache as
+ACCEPT_CH frames are strictly a connection-level setting. It would introduce
+unnecessary complexity if allowing more than one mechanism to affect the cache
+stroage. ACCEPT_CH frames are introduced as an optimization mechanism for
+Accept-CH and not as a replacement.
 
 
 ## Interaction with Critical-CH
@@ -393,6 +410,6 @@ should be updated as that design evolves.\]\]
 # Acknowledgments
 {:numbered="false"}
 
-This document has benefited from contributions and suggestions from
-David Benjamin, Ilya Grigorik, Nick Harper, Matt Menke, Aaron Tagliaboschi,
+This document has benefited from the work of David Benjamin in {{I-D.davidben-http-client-hint-reliability}},
+contributions and suggestions from Ilya Grigorik, Nick Harper, Matt Menke, Aaron Tagliaboschi,
 Victor Vasiliev, Yoav Weiss, and others.
