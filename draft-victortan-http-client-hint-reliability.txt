@@ -4,9 +4,9 @@
 
 HTTP                                                              V. Tan
 Internet-Draft                                                Google LLC
-Updates: ietf-httpbis-client-hints (if approved)         10 January 2025
+Updates: ietf-httpbis-client-hints (if approved)         13 January 2025
 Intended status: Experimental                                           
-Expires: 14 July 2025
+Expires: 17 July 2025
 
 
                         Client Hint Reliability
@@ -41,7 +41,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 July 2025.
+   This Internet-Draft will expire on 17 July 2025.
 
 Copyright Notice
 
@@ -531,8 +531,9 @@ Table of Contents
 
 Acknowledgments
 
-   This document has benefited from contributions and suggestions from
-   David Benjamin, Ilya Grigorik, Nick Harper, Matt Menke, Aaron
+   This document has benefited from the work of David Benjamin in
+   [I-D.davidben-http-client-hint-reliability], contributions and
+   suggestions from Ilya Grigorik, Nick Harper, Matt Menke, Aaron
    Tagliaboschi, Victor Vasiliev, Yoav Weiss, and others.
 
 Author's Address
