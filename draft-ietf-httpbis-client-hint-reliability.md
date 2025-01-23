@@ -1,6 +1,6 @@
 ---
 title: Client Hint Reliability
-docname: draft-victortan-http-client-hint-reliability-latest
+docname: draft-ietf-httpbis-client-hint-reliability-latest
 submissiontype: IETF
 category: exp
 updates: ietf-httpbis-client-hints

@@ -2,7 +2,7 @@
 
 This is the working area for the individual Internet-Draft, "Client Hint Reliability".
 
-* [Editor's Copy](https://Tanych.github.io/http-client-hint-reliability/#go.draft-victortan-http-client-hint-reliability.html)
+* [Editor's Copy](https://Tanych.github.io/http-client-hint-reliability/#go.draft-ietf-httpbis-client-hint-reliability.html)
 
 This is extended work from David Benjamin's [initial Client Hint Reliability draft](https://github.com/davidben/http-client-hint-reliability/blob/main/draft-davidben-http-client-hint-reliability.md).
 
