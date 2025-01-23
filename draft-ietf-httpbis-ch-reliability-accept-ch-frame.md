@@ -1,6 +1,6 @@
 ---
-title: Client Hint Reliability
-docname: draft-ietf-httpbis-client-hint-reliability-latest
+title: Client Hint Reliability ACCEPT_CH Frame
+docname: draft-ietf-httpbis-ch-reliability-accept-ch-frame-latest
 submissiontype: IETF
 category: exp
 updates: ietf-httpbis-client-hints
@@ -22,57 +22,37 @@ normative:
   RFC2119:
   RFC5234:
   RFC6454:
-  RFC7231:
   RFC7234:
   RFC7540:
-  RFC8446:
-  RFC8941:
   RFC8942:
   RFC9000:
+  RFC9113:
   RFC9114:
 
   I-D.davidben-http-client-hint-reliability:
-  I-D.vvv-httpbis-alps:
-  I-D.vvv-tls-alps:
-
-informative:
-  DEVICE-MEMORY:
-    target: https://w3c.github.io/device-memory/
-    title: Device Memory
-    author:
-      ins: S. Panicker
-      name: Shubhie Panicker
-      organization: Google LLC
 
 
 --- abstract
 
-This document defines the Critical-CH HTTP response header, and the ACCEPT_CH
-HTTP/2 and HTTP/3 frames to allow HTTP servers to reliably specify their Client
-Hint preferences, with minimal performance overhead.
+This document defines the ACCEPT_CH HTTP/2 and HTTP/3 frames to allow HTTP
+servers to reliably specify their Client Hint preferences. It aims to improve
+the performance to deliver Client Hint.
 
 
 --- middle
 
 # Introduction
 
-{{RFC8942}} defines a response header, Accept-CH, for servers to advertise a
-set of request headers used for proactive content negotiation. This allows user
-agents to send request headers only when used, improving their performance
-overhead as well as reducing passive fingerprinting surface.
+To address the problem of delivering Client Hints preferences on the first
+request, the Critical-CH mechanism allows servers to specify critical Client Hints
+for rendering the requested resource. This ensures that the user agent retries
+the request if those hints are not initially provided.
 
-However, on the first HTTP request to a server, the user agent will not have
-received the Accept-CH header and may not take the server preferences into
-account. More generally, the server's configuration may have changed since the
-most recent HTTP request to the server. This document defines a pair of
-mechanisms to resolve this:
-
-1. an HTTP response header, Critical-CH, for the server to instruct the user
-   agent to retry the request
-
-2. an alternate delivery mechanism for Accept-CH in HTTP/2 {{RFC7540}} and
-   HTTP/3 {{RFC9114}}, which can avoid the performance hit of a
-   retry in most cases
+While Critical-CH header provides reliability, it requires a retry on some
+requests. This document introduces the ACCEPT_CH HTTP/2 {{RFC7540}} and
+HTTP/3 {{RFC9114}} frames as an optimization for Accept-CH {{RFC8942}}, which
+can avoid the performance hit of a retry in most cases, so the server's Client
+Hint preferences are usually available before the client's first request.
 
 
 # Conventions and Definitions
@@ -87,120 +67,43 @@ This document uses the Augmented Backus-Naur Form (ABNF) notation of {{RFC5234}}
 This document uses the variable-length integer encoding and frame diagram format
 from {{RFC9000}}.
 
-
-# The Critical-CH Response Header Field {#critical-ch}
-
-When a user agent requests a resource based on a missing or outdated Accept-CH
-value, it may not send a desired request header field. Neither user agent nor server
-has enough information to reliably and efficiently recover from this situation.
-The server can observe that the header is missing, but the user agent may not have
-supported the header, or may have chosen not to send it. Triggering a new
-request in these cases would risk an infinite loop or an unnecessary round-trip.
-
-Conversely, the user agent can observe that a request header appears in the
-Accept-CH ({{Section 3.1 of RFC8942}}) and Vary ({{Section 7.1.4 of RFC7231}})
-response header fields. However, retrying based on this information would waste
-resources if the resource only used the Client Hint as an optional
-optimization.
-
-This document introduces critical Client Hints. These are the Client Hints which
-meaningfully change the resulting resource. For example, a server may use the
-Device-Memory Client Hint {{DEVICE-MEMORY}} to select simple and complex variants
-of a resource to different user agents. Such a resource should be fetched
-consistently across page loads to avoid jarring user-visible switches.
-
-The server specifies critical Client Hints with the Critical-CH response header
-field. It is a Structured Header {{RFC8941}} whose value MUST be an sf-list
-({{Section 3.1 of RFC8941}}) whose members are tokens ({{Section 3.3.4 of
-RFC8941}}). Its ABNF is:
-
-~~~
-  Critical-CH = sf-list
-~~~
-
-For example:
-
-~~~
-  Critical-CH: Sec-CH-Example, Sec-CH-Example-2
-~~~
-
-Each token listed in the Critical-CH header SHOULD additionally be present in
-the Accept-CH and Vary response headers.
-
-When a user agent receives an HTTP response containing a Critical-CH header, it
-first processes the Accept-CH header as described in {{Section 3.1 of
-RFC8942}}. It then performs the following steps:
-
-1. If the request did not use a safe method ({{Section 4.2.1 of RFC7231}}), ignore the Critical-CH header and continue processing the response as usual.
-
-2. If the response was already the result of a retry, ignore the Critical-CH header and continue processing the response as usual.
-
-3. Determine the Client Hints that would have been sent given the updated Accept-CH value, incorporating the user agent's local policy and user preferences. See also {{Section 2.1 of RFC8942}}.
-
-4. Compare this result to the Client Hints which were sent. If any Client Hint listed in the Critical-CH header was not previously sent and would now have been sent, retry the request with the new preferences. Otherwise, continue processing the response as usual.
-
-Note this procedure does not cause the user agent to send Client Hints it would
-not otherwise send.
-
-## Example
-
-For example, if the user agent loads https://example.com with no knowledge of
-the server's Accept-CH preferences, it may send the following response:
-
-~~~
-  GET / HTTP/1.1
-  Host: example.com
-
-  HTTP/1.1 200 OK
-  Content-Type: text/html
-  Accept-CH: Sec-CH-Example, Sec-CH-Example-2
-  Vary: Sec-CH-Example
-  Critical-CH: Sec-CH-Example
-~~~
-
-In this example, the server, across the whole origin, uses both Sec-CH-Example
-and Sec-CH-Example-2 Client Hints. However, this resource only uses
-Sec-CH-Example, which it considers critical.
-
-The user agent now processes the Accept-CH header and determines it would have
-sent both headers. Sec-CH-Example is listed in Critical-CH, so the user agent
-retries the request, and receives a more specific response.
-
-~~~
-  GET / HTTP/1.1
-  Host: example.com
-  Sec-CH-Example: 1
-  Sec-CH-Example-2: 2
-
-  HTTP/1.1 200 OK
-  Content-Type: text/html
-  Accept-CH: Sec-CH-Example, Sec-CH-Example-2
-  Vary: Sec-CH-Example
-  Critical-CH: Sec-CH-Example
-~~~
-
-
 # The ACCEPT_CH Frame
 
-While Critical-CH header provides reliability, it requires a retry on some
-requests. This document additionally introduces the ACCEPT_CH HTTP/2 and HTTP/3
-frames as an optimization so the server's Client Hint preferences are usually
-available before the client's first request.
-
+This document specifies a new ACCEPT_CH frame for HTTP/2 {{RFC7540}} and
+HTTP/3 {{RFC9114}}. It carries Client Hint preference for the servers.
 HTTP/2 and HTTP/3 servers which request Client Hints SHOULD send an ACCEPT_CH
-frame as early as possible. Connections using TLS {{RFC8446}} which negotiate the
-Application Layer Protocol Settings (ALPS) {{I-D.vvv-tls-alps}} extension
-SHOULD include the ACCEPT_CH frame in the ALPS value as described in
-{{I-D.vvv-httpbis-alps}}. This ensures the information is available to the
+frame as early as possible. This ensures the information is available to the
 user agent when it makes the first request.
-
-\[\[TODO: Alternatively, is it time to revive
-draft-bishop-httpbis-extended-settings?\]\]
-
 
 ## HTTP/2 ACCEPT_CH Frame
 
-The HTTP/2 ACCEPT_CH frame type is TBD (decimal TBD) and contains zero or more entries, each consisting of a pair of length-delimited strings:
+The HTTP/2 ACCEPT_CH frame (type=0x89) is used to specify the server's Client
+Hint preferences and contains zero or more entries, each consisting of a pair of
+length-delimited strings.
+
+The Stream Identifier field (see {{Section 5.1.1 of RFC9113}}) in the
+ACCEPT_CH frame header MUST be zero (0x0). Receiving a ACCEPT_CH
+frame with a field of any other value MUST be treated as a connection error of
+type PROTOCOL_ERROR.
+
+~~~
+HTTP/2 ACCEPT_CH Frame {
+  Length (24),
+  Type (8) = 0x89,
+
+  Unused Flags (8),
+
+  Reserved (1),
+  Stream Identifier (31),
+
+  ACCEPT_CH Payload (..),
+}
+~~~
+{: #fig-h2-accept-ch-frame title="HTTP/2 ACCEPT_CH Frame Format"}
+
+The Length, Type, Unused Flag(s), Reserved, and Stream Identifier fields are
+described in {{Section 4 of RFC9113}}. The ACCEPT_CH frame payload
+contains the following additional fields:
 
 ~~~
 +-------------------------------+
@@ -220,13 +123,15 @@ Origin-Len:
 : An unsigned, 16-bit integer indicating the length, in octets, of the Origin field.
 
 Origin:
-: A sequence of characters containing the ASCII serialization of an origin ({{Section 6.2 of RFC6454}}) that the sender is providing an Accept-CH value for.
+: A sequence of characters containing the ASCII serialization of an origin
+({{Section 6.2 of RFC6454}}) that the sender is providing an Accept-CH value for.
 
 Value-Len:
 : An unsigned, 16-bit integer indicating the length, in octets, of the Value field.
 
 Value:
-: A sequence of characters containing the Accept-CH value for the corresponding origin. This value MUST satisfy the Accept-CH ABNF defined in {{Section 3.1 of RFC8942}}.
+: A sequence of characters containing the Accept-CH value for the corresponding origin.
+This value MUST satisfy the Accept-CH ABNF defined in {{Section 3.1 of RFC8942}}.
 
 Clients MUST NOT send ACCEPT_CH frames. Servers which receive an ACCEPT_CH
 frame MUST respond with a connection error ({{Section 5.4.1 of RFC7540}}) of type
@@ -238,10 +143,12 @@ ACCEPT_CH field is unused and MUST be zero. If a user agent receives an
 ACCEPT_CH frame whose stream identifier or flags field is non-zero, it MUST
 respond with a connection error of type PROTOCOL_ERROR.
 
+
 ## HTTP/3 ACCEPT_CH Frame
 
-The HTTP/3 ACCEPT_CH frame type is TBD (decimal TBD) and contains zero or more
-entries, each containing an origin and a corresponding Accept-CH value.
+The HTTP/3 ACCEPT_CH frame (type=0x89) is used to specify the server's Client
+Hint preferences and contains zero or more entries, each containing an origin
+and a corresponding Accept-CH value.
 
 ~~~
 HTTP/3 ACCEPT_CH Entry {
@@ -252,11 +159,12 @@ HTTP/3 ACCEPT_CH Entry {
 }
 
 HTTP/3 ACCEPT_CH Frame {
-  Type (i) = TBD,
+  Type (i) = 0x89,
   Length (i),
   HTTP/3 ACCEPT_CH Entry (..) ...,
 }
 ~~~
+{: #fig-h3-accept-ch-frame title="HTTP/3 ACCEPT_CH Frame"}
 
 The fields of each HTTP/3 ACCEPT_CH Entry are defined as follows:
 
@@ -276,17 +184,16 @@ Clients MUST NOT send ACCEPT_CH frames. Servers which receive an ACCEPT_CH
 frame MUST respond with a connection error ({{Section 8 of RFC9114}})
 of type H3_FRAME_UNEXPECTED.
 
-ACCEPT_CH frames may only be sent on the control stream. Clients which receive
+ACCEPT_CH frames may only be sent on the control stream ({{Section 6.2.1 of RFC9114}}) Clients which receive
 an ACCEPT_CH frame on any other stream MUST respond with a connection error of
 type H3_FRAME_UNEXPECTED.
 
 ## Processing ACCEPT_CH Frames {#processing-accept-ch-frames}
 
 The user agent remembers the most recently received ACCEPT_CH frame for each
-HTTP/2 or HTTP/3 connection. When it receives a new ACCEPT_CH frame, either in
-application data or ALPS, it overwrites this value. As this is an optimization,
-the user agent MAY bound the size and ignore or forget entries to reduce
-resource usage.
+HTTP/2 or HTTP/3 connection. When it receives a new ACCEPT_CH frame, it
+overwrites this value. As this is an optimization, the user agent MAY bound the
+size and ignore or forget entries to reduce resource usage.
 
 When the user agent makes an HTTP request to a particular origin over an HTTP/2
 or HTTP/3 connection, it looks up the origin in the remembered ACCEPT_CH, if
@@ -340,8 +247,7 @@ Accept-CH and not as a replacement.
 The ACCEPT_CH frame avoids a round-trip, so relying on it over Critical-CH would
 be preferable. However, this is not always possible:
 
-* The server may be running older software without support for ACCEPT_CH or
-  ALPS.
+* The server may be running older software without support for ACCEPT_CH frame.
 
 * The server's Accept-CH preferences may change while existing connections are
   open. Those connections will have outdated ACCEPT_CH frames. While the server
@@ -354,18 +260,12 @@ be preferable. However, this is not always possible:
   may not be listed in the ACCEPT_CH frame, particularly if the server used a
   wildcard X.509 certificate.
 
-Thus this document defines both mechanisms. Critical-CH provides reliable
-Client
-Hint delivery, while the ACCEPT_CH frame avoids the retry in most cases.
+Thus this document defines an altertive delivery mechanism ACCEPT_CH frame
+to avoid the retry in most cases, and Critical-CH provides reliable
+Client Hint delivery.
 
 
 # Security Considerations
-
-Request header fields may expose sensitive information about the user's
-environment. {{Section 4.1 of RFC8942}} discusses some of these considerations.
-The document augments the capabilities of Client Hints, but does not change
-these considerations. The procedure described in {{critical-ch}} does not
-result in the user agent sending request headers it otherwise would not have.
 
 The ACCEPT_CH frame does introduce a new way for HTTP/2 or HTTP/3 connections to
 make assertions about origins they are not authoritative for, but the procedure
@@ -383,9 +283,7 @@ with the following parameters:
 
 * Frame Type: ACCEPT_CH
 
-* Code: TBD
-
-* Allowed in ALPS: Yes
+* Code: 0x89
 
 * Reference: \[\[this document\]\]
 
@@ -394,16 +292,9 @@ This specification adds an entry to the "HTTP/3 Frame Type" registry
 
 * Frame Type: ACCEPT_CH
 
-* Code: TBD
-
-* Allowed in ALPS: Yes
+* Code: 0x89
 
 * Reference: \[\[this document\]\]
-
-\[\[TODO: As of writing, the Frame Type registries do not include
-Allowed in ALPS columns, but {{I-D.vvv-httpbis-alps}} adds them. This document
-should be updated as that design evolves.\]\]
-
 
 --- back
 
