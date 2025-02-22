@@ -1,6 +1,6 @@
 ---
 title: Critical-CH for Client Hint Reliability
-docname: draft-ietf-httpbis-ch-reliability-critical-ch-latest
+docname: draft-victortan-httpbis-chr-critical-ch-latest
 submissiontype: IETF
 category: exp
 updates: ietf-httpbis-client-hints

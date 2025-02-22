@@ -2,9 +2,9 @@
 
 This is the working area for the "Client Hint Reliability" related Internet-Draft.
 
-* [Critical-CH Editor's Copy](https://Tanych.github.io/http-client-hint-reliability/#go.draft-ietf-httpbis-ch-reliability-critical-ch.html)
+* [Critical-CH Editor's Copy](https://Tanych.github.io/http-client-hint-reliability/#go.draft-victortan-httpbis-chr-critical-ch.html)
 
-* [ACCEPT_CH Frame Editor's Copy](https://Tanych.github.io/http-client-hint-reliability/#go.draft-ietf-httpbis-ch-reliability-accept-ch-frame.html)
+* [ACCEPT_CH Frame Editor's Copy](https://Tanych.github.io/http-client-hint-reliability/#go.draft-victortan-httpbis-chr-accept-ch-frame.html)
 
 This is extended work from David Benjamin's [initial Client Hint Reliability draft](https://github.com/davidben/http-client-hint-reliability/blob/main/draft-davidben-http-client-hint-reliability.md).
 

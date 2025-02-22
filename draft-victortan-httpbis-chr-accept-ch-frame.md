@@ -1,6 +1,6 @@
 ---
 title: Client Hint Reliability ACCEPT_CH Frame
-docname: draft-ietf-httpbis-ch-reliability-accept-ch-frame-latest
+docname: draft-victortan-httpbis-chr-accept-ch-frame-latest
 submissiontype: IETF
 category: exp
 updates: ietf-httpbis-client-hints
